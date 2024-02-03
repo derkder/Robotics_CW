@@ -1,8 +1,12 @@
+clear;
+run('Define_Constants.m');
 % 读取CSV文件
-data = csvread('Workshop3_Speed_Heading.csv'); % 跳过标题行
+data = csvread('Dead_reckoning.csv');
 time = data(:, 1); % 时间
-speed = data(:, 2); % 速度
-heading = data(:, 3); % 航向
+wheel_speed = data(:, 2:5); % 速度
+speed = mean(wheel_speed, 2);
+angular_rate = data(:, 6) * rad_to_deg;% 弧度/s
+heading = data(:, 7); % 航向degree from the magnetic compass
 
 % 初始化位置
 L = zeros(length(time), 1);
@@ -13,10 +17,29 @@ lambda(1) = deg2rad(-3.5957974); % 初始经度，转换为弧度
 % 初始化平均速度
 v_N_ave = zeros(length(time), 1);
 v_E_ave = zeros(length(time), 1);
+alpha = 0.3;
+
+% 考虑轮速传感器的误差
+scale_factor_error_std = 0.03; % 尺度因子误差标准差
+noise_std_dev = 0.05; % 噪声标准差
+% 航向角度转弧度，考虑陀螺仪误差
+gyro_bias_std = 1; % 偏置标准差
+gyro_scale_error_std = 0.01; % 尺度因子误差标准差
+gyro_random_noise_std = 1e-4; % 随机噪声标准差
+gyro_quantization_error = 2e-4; % 量化误差
 
 % 循环计算每个时间点的位置
 for k = 2:length(time)
+    speed_error = speed(k) * normrnd(0, scale_factor_error_std) + normrnd(0, noise_std_dev);
+    speed(k) = speed(k) + speed_error;
+
     % 航向角度转弧度
+    delta_t = time(k) - time(k-1);
+    gyro_heading_change = angular_rate(k) * delta_t;
+    gyro_total_error = gyro_bias_std + gyro_scale_error_std * angular_rate(k);
+    gyro_heading_change = gyro_heading_change + gyro_total_error;
+
+    heading(k) = alpha * (heading(k-1) + gyro_heading_change) + (1-alpha) * heading(k);
     psi_k = heading(k) * deg_to_rad;
     psi_k_minus_1 = heading(k-1) * deg_to_rad;
     
@@ -25,10 +48,9 @@ for k = 2:length(time)
     v_E_ave(k) = (sin(psi_k) + sin(psi_k_minus_1)) / 2 * speed(k);
     
     % 计算位置
-    delta_t = time(k) - time(k-1);
     [R_N, R_E] = Radii_of_curvature(L(k-1)); % 子午圈曲率半径
-    h = 37.4; % 地理高度
-    
+    h = 0.1; % 地理高度
+    disp(v_N_ave(k) * delta_t / (R_N + h))
     L(k) = L(k-1) + v_N_ave(k) * delta_t / (R_N + h);
     lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k-1)));
 end
@@ -48,7 +70,6 @@ end
 % 转换回度以便于观察
 L = L / deg_to_rad;
 lambda = lambda  / deg_to_rad;
-
 disp([L, lambda, v_N, v_E])
 
 
@@ -57,7 +78,7 @@ disp([L, lambda, v_N, v_E])
 % 我真的是日了狗了，哪里写错了啊西巴
 % 终于nmd做对了，我不是天才是什么
 % 加载GNSS位置和速度数据
-GNSS_data = csvread('Workshop3_GNSS_Pos_Vel_NED.csv');
+GNSS_data = csvread('GNSS_Pos_Vel_NED.csv');
 time_GNSS = GNSS_data(:, 1);
 latitude_GNSS = GNSS_data(:, 2);
 longitude_GNSS = GNSS_data(:, 3);
@@ -77,7 +98,8 @@ P_hat = diag([(0.1)^2, (0.1)^2, (10)^2 / (R_N + height_GNSS(1))^2, (10)^2 / ((R_
 
 
 % 系统噪声PSD
-S_DR = 0.2;
+S_DR = 0.01; % wheel_speed
+S_DR_heading = deg2rad(1)^2;
 
 % 测量噪声
 sigma_r = 5; % GNSS位置测量误差标准差，单位：米
@@ -146,6 +168,5 @@ for k = 2:length(time_GNSS)
     v_e = DR_data(k,4) - x_hat(2);
     fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(k), L_b, lambda_b, v_n, v_e);
 
-    
 end
 
