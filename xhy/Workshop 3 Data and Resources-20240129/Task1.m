@@ -49,18 +49,16 @@ end
 L = L / deg_to_rad;
 lambda = lambda  / deg_to_rad;
 
-disp([L, lambda, v_N, v_E])
+% disp([L, lambda, v_N, v_E])
 
 
 
 % Task2
-% 我真的是日了狗了，哪里写错了啊西巴
-% 终于nmd做对了，我不是天才是什么
 % 加载GNSS位置和速度数据
 GNSS_data = csvread('Workshop3_GNSS_Pos_Vel_NED.csv');
 time_GNSS = GNSS_data(:, 1);
-latitude_GNSS = GNSS_data(:, 2);
-longitude_GNSS = GNSS_data(:, 3);
+latitude_GNSS = GNSS_data(:, 2) * deg_to_rad;
+longitude_GNSS = GNSS_data(:, 3) * deg_to_rad;
 height_GNSS = GNSS_data(:, 4);
 velocity_N_GNSS = GNSS_data(:, 5);
 velocity_E_GNSS = GNSS_data(:, 6);
@@ -92,7 +90,7 @@ H_k = [0 0 -1 0;
       -1 0 0 0;
        0 -1 0 0];
 % k = 1
-fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(1), latitude_GNSS(1), longitude_GNSS(1), velocity_N_GNSS(1), velocity_E_GNSS(1));
+fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(1), latitude_GNSS(1) / deg_to_rad, longitude_GNSS(1) / deg_to_rad, velocity_N_GNSS(1), velocity_E_GNSS(1));
 
 % 开始卡尔曼滤波循环
 for k = 2:length(time_GNSS) 
@@ -127,8 +125,8 @@ for k = 2:length(time_GNSS)
     K_k = P_hat_minus * H_k' / (H_k * P_hat_minus * H_k' + R_k);
     
     % 8. 构造测量创新向量
-    delta_z_k = [latitude_GNSS(k) - DR_data(k,1);
-             longitude_GNSS(k) - DR_data(k,2);
+    delta_z_k = [latitude_GNSS(k) - DR_data(k,1) * deg_to_rad;
+             longitude_GNSS(k) - DR_data(k,2) * deg_to_rad;
              velocity_N_GNSS(k) - DR_data(k,3);
              velocity_E_GNSS(k) - DR_data(k,4)];
     %disp(delta_z_k)
@@ -140,8 +138,8 @@ for k = 2:length(time_GNSS)
     P_hat = (eye(4) - K_k*H_k)*P_hat_minus;
 
     %woc我瞎改的后来发现就应该这么改，x作为变换，前两维是速度后两维才是经纬度...
-    L_b = DR_data(k,1) - x_hat(3);
-    lambda_b = DR_data(k,2) - x_hat(4);
+    L_b = DR_data(k,1) - x_hat(3) / deg_to_rad;
+    lambda_b = DR_data(k,2) - x_hat(4) / deg_to_rad;
     v_n = DR_data(k,3) - x_hat(1);
     v_e = DR_data(k,4) - x_hat(2);
     fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(k), L_b, lambda_b, v_n, v_e);
