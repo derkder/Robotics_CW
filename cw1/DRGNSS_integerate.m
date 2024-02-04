@@ -52,7 +52,7 @@ for k = 2:length(time)
     h = 0.1; % 地理高度
     disp(v_N_ave(k) * delta_t / (R_N + h))
     L(k) = L(k-1) + v_N_ave(k) * delta_t / (R_N + h);
-    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k-1)));
+    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k)));
 end
 
 % 初始化平均速度
@@ -75,8 +75,6 @@ disp([L, lambda, v_N, v_E])
 
 
 % Task2
-% 我真的是日了狗了，哪里写错了啊西巴
-% 终于nmd做对了，我不是天才是什么
 % 加载GNSS位置和速度数据
 GNSS_data = csvread('GNSS_Pos_Vel_NED.csv');
 time_GNSS = GNSS_data(:, 1);
@@ -122,9 +120,9 @@ for k = 2:length(time_GNSS)
     [R_N, R_E] = Radii_of_curvature(latitude_GNSS(k-1));
         
     Phi_k = [1 0 0 0;
-             tau_s/(R_N + height_GNSS(k-1)) 1 0 0;
-             0 0 1 0;
-             tau_s/((R_E + height_GNSS(k-1))*cos(latitude_GNSS(k-1))) 0 0 1];
+             0 1 0 0;
+             tau_s/(R_N + height_GNSS(k-1)) 0 1 0;
+             0 tau_s/((R_E + height_GNSS(k-1))*cos(latitude_GNSS(k-1))) 0 1];
     
     % 2. 计算系统噪声协方差矩阵
     Q_k = [S_DR*tau_s, 0, (S_DR*tau_s^2)/(2*(R_N + height_GNSS(k-1))), 0;
