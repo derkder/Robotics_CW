@@ -17,7 +17,7 @@ lambda(1) = deg2rad(-3.5957974); % 初始经度，转换为弧度
 % 初始化平均速度
 v_N_ave = zeros(length(time), 1);
 v_E_ave = zeros(length(time), 1);
-alpha = 0.3;
+alpha = 0.1;
 
 % 考虑轮速传感器的误差
 scale_factor_error_std = 0.03; % 尺度因子误差标准差
@@ -70,6 +70,12 @@ end
 % 转换回度以便于观察
 L = L / deg_to_rad;
 lambda = lambda  / deg_to_rad;
+
+% 加上GNSS和汽车中心位置不同带来的偏移
+for k = 1:length(time)
+    L(k) = L(k) + v_N * 0.05;
+    lambda(k) = lambda(k) + v_E * 0.05;
+end
 disp([L, lambda, v_N, v_E])
 
 
@@ -164,7 +170,7 @@ for k = 2:length(time_GNSS)
     lambda_b = DR_data(k,2) - x_hat(4);
     v_n = DR_data(k,3) - x_hat(1);
     v_e = DR_data(k,4) - x_hat(2);
-    fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(k), L_b, lambda_b, v_n, v_e);
+    fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米，heading = %f\n', time_GNSS(k), L_b, lambda_b, v_n, v_e,heading(k));
 
 end
 
