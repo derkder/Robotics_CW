@@ -100,9 +100,9 @@ for k = 2:length(time_GNSS)
     [R_N, R_E] = Radii_of_curvature(latitude_GNSS(k-1));
         
     Phi_k = [1 0 0 0;
-             tau_s/(R_N + height_GNSS(k-1)) 1 0 0;
-             0 0 1 0;
-             tau_s/((R_E + height_GNSS(k-1))*cos(latitude_GNSS(k-1))) 0 0 1];
+             0 1 0 0;
+             tau_s/(R_N + height_GNSS(k-1)) 0 1 0;
+             0 tau_s/((R_E + height_GNSS(k-1))*cos(latitude_GNSS(k-1))) 0 1];
     
     % 2. 计算系统噪声协方差矩阵
     Q_k = [S_DR*tau_s, 0, (S_DR*tau_s^2)/(2*(R_N + height_GNSS(k-1))), 0;
@@ -136,7 +136,7 @@ for k = 2:length(time_GNSS)
     %disp(delta_z_k)
 
     x_hat = x_hat_minus + K_k * delta_z_k;
-    disp(K_k * delta_z_k)
+    % disp(K_k * delta_z_k)
     P_hat = (eye(4) - K_k*H_k)*P_hat_minus;
 
     %woc我瞎改的后来发现就应该这么改，x作为变换，前两维是速度后两维才是经纬度...
@@ -148,4 +148,3 @@ for k = 2:length(time_GNSS)
 
     
 end
-
