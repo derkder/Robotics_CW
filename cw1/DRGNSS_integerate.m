@@ -28,6 +28,18 @@ gyro_scale_error_std = 0.01; % 尺度因子误差标准差
 gyro_random_noise_std = 1e-4; % 随机噪声标准差
 gyro_quantization_error = 2e-4; % 量化误差
 
+% 初始化平均速度
+v_N = zeros(length(time), 1);
+v_E = zeros(length(time), 1);
+v_N(1) = speed(1) * cos(heading(1) * deg_to_rad);
+v_E(1) = speed(1) * sin(heading(1) * deg_to_rad);
+
+% 计算阻尼瞬时DR速度
+for k = 2:length(time)
+    v_N(k) = 1.7 * v_N_ave(k) - 0.7 * v_N(k-1);
+    v_E(k) = 1.7 * v_E_ave(k) - 0.7 * v_E(k-1);
+end
+
 % 循环计算每个时间点的位置
 for k = 2:length(time)
     speed_error = speed(k) * normrnd(0, scale_factor_error_std) + normrnd(0, noise_std_dev);
@@ -51,34 +63,16 @@ for k = 2:length(time)
     [R_N, R_E] = Radii_of_curvature(L(k-1)); % 子午圈曲率半径
     h = 0.1; % 地理高度
     disp(v_N_ave(k) * delta_t / (R_N + h))
-    L(k) = L(k-1) + v_N_ave(k) * delta_t / (R_N + h);
-    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k)));
+    % 加上GNSS和汽车中心位置不同带来的偏移
+    L(k) = L(k-1) + (v_N_ave(k) * delta_t + v_N(k) * 0.05) / (R_N + h);
+    lambda(k) = lambda(k-1) + (v_E_ave(k) * delta_t + v_E(k) * 0.05 ) / ((R_E + h) * cos(L(k)));
 end
 
-% 初始化平均速度
-v_N = zeros(length(time), 1);
-v_E = zeros(length(time), 1);
-v_N(1) = speed(1) * cos(heading(1) * deg_to_rad);
-v_E(1) = speed(1) * sin(heading(1) * deg_to_rad);
 
-% 计算阻尼瞬时DR速度
-for k = 2:length(time)
-    v_N(k) = 1.7 * v_N_ave(k) - 0.7 * v_N(k-1);
-    v_E(k) = 1.7 * v_E_ave(k) - 0.7 * v_E(k-1);
-end
 
 % 转换回度以便于观察
 L = L / deg_to_rad;
 lambda = lambda  / deg_to_rad;
-
-% 加上GNSS和汽车中心位置不同带来的偏移
-for k = 1:length(time)
-    L(k) = L(k) + v_N * 0.05;
-    lambda(k) = lambda(k) + v_E * 0.05;
-end
-disp([L, lambda, v_N, v_E])
-
-
 
 % Task2
 % 加载GNSS位置和速度数据
