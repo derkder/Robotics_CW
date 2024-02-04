@@ -141,10 +141,10 @@ for k = 2 : num_epochs
      var_v = S_DR * tau_s;
      %position error
      var_pos1 = S_DR * tau_s^3 / (3 * (R_N + h_gnss(k-1))^2); %Latitude
-     var_pos2 = S_DR * tau_s^3 / (3 * (R_N + h_gnss(k-1))^2 * cos(lat_DR(k-1))^2); %Longitude
+     var_pos2 = S_DR * tau_s^3 / (3 * (R_E + h_gnss(k-1))^2 * cos(lat_DR(k-1))^2); %Longitude
      %correlation error of velosity and position
      covar1 = S_DR * tau_s^2 / (2 * (R_N + h_gnss(k-1)));
-     covar2 = S_DR * tau_s^2 / (2 * (R_N + h_gnss(k-1)) * cos(lat_DR(k-1)));
+     covar2 = S_DR * tau_s^2 / (2 * (R_E + h_gnss(k-1)) * cos(lat_DR(k-1)));
 
      Q_k_minus = [var_v 0 covar1 0;
                   0 var_v 0 covar2;
@@ -158,7 +158,7 @@ for k = 2 : num_epochs
 
      %Compute the measurement noise covariance matrix
      var_pos_gnss1 = sigma_pos_gnss^2 / (R_N + h_gnss(k))^2; %latitude
-     var_pos_gnss2 = sigma_pos_gnss^2 / (R_N + h_gnss(k))^2 / cos(lat_gnss(k)); %longitude
+     var_pos_gnss2 = sigma_pos_gnss^2 / (R_E + h_gnss(k))^2 / cos(lat_gnss(k)); %longitude
      var_v_gnss = sigma_v_gnss^2;
      R_k = diag([var_pos_gnss1, var_pos_gnss2, var_v_gnss, var_v_gnss]);
 
@@ -182,7 +182,7 @@ for k = 2 : num_epochs
      lonk_correct = lon_DR(k) - xk_est_posterior(4);
      vk_N_correct = v_inst_N(k) - xk_est_posterior(1);
      vk_E_correct = v_inst_E(k) - xk_est_posterior(2);
-
+     
      %Save data
      lat_correct(k) = latk_correct;
      lon_correct(k) = lonk_correct;
@@ -190,10 +190,12 @@ for k = 2 : num_epochs
      v_E_correct(k) = vk_E_correct;
      %Update for next epoch
      xk_est_prior = xk_est_posterior;
-     Pk_prior = Pk_posterior;
+     Pk_prior = Pk_posterior;     
 end
 
 %Convert corrected results to degree
 lat_correct = rad2deg(lat_correct);
 lon_correct = rad2deg(lon_correct);
-lat_results = [time, lat_correct];
+
+%Check the results
+corrected_results = [time, lat_correct, lon_correct, v_N_correct, v_E_correct];
