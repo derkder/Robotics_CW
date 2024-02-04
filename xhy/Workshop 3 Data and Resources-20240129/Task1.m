@@ -30,7 +30,7 @@ for k = 2:length(time)
     h = 37.4; % 地理高度
     
     L(k) = L(k-1) + v_N_ave(k) * delta_t / (R_N + h);
-    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k-1)));
+    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k)));
 end
 
 % 初始化平均速度
