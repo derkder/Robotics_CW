@@ -1,10 +1,9 @@
 % 读取CSV文件
-clear;
-run('Define_Constants.m');
 data = csvread('Workshop3_Speed_Heading.csv'); % 跳过标题行
 time = data(:, 1); % 时间
 speed = data(:, 2); % 速度
 heading = data(:, 3); % 航向
+
 % 初始化位置
 L = zeros(length(time), 1);
 lambda = zeros(length(time), 1);
@@ -15,24 +14,6 @@ lambda(1) = deg2rad(-3.5957974); % 初始经度，转换为弧度
 v_N_ave = zeros(length(time), 1);
 v_E_ave = zeros(length(time), 1);
 
-% 循环计算每个时间点的位置
-for k = 2:length(time)
-    % 航向角度转弧度
-    psi_k = heading(k) * deg_to_rad;
-    psi_k_minus_1 = heading(k-1) * deg_to_rad;
-    
-    % 计算平均速度
-    v_N_ave(k) = (cos(psi_k) + cos(psi_k_minus_1)) / 2 * speed(k);
-    v_E_ave(k) = (sin(psi_k) + sin(psi_k_minus_1)) / 2 * speed(k);
-    
-    % 计算位置
-    delta_t = time(k) - time(k-1);
-    [R_N, R_E] = Radii_of_curvature(L(k - 1)); % 子午圈曲率半径
-    h = 37.4; % 地理高度
-    
-    L(k) = L(k-1) + v_N_ave(k) * delta_t / (R_N + h);
-    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k)/ deg_to_rad));
-end
 
 % 初始化平均速度
 v_N = zeros(length(time), 1);
@@ -40,29 +21,14 @@ v_E = zeros(length(time), 1);
 v_N(1) = speed(1) * cos(heading(1) * deg_to_rad);
 v_E(1) = speed(1) * sin(heading(1) * deg_to_rad);
 
-% 计算阻尼瞬时DR速度
-for k = 2:length(time)
-    v_N(k) = 1.7 * v_N_ave(k) - 0.7 * v_N(k-1);
-    v_E(k) = 1.7 * v_E_ave(k) - 0.7 * v_E(k-1);
-end
-
-% 转换回度以便于观察
-L = L / deg_to_rad;
-lambda = lambda  / deg_to_rad;
-
-%disp([time, L, lambda, v_N, v_E])
 
 
-L(1) = deg2rad(50.4249580); % 初始纬度，转换为弧度
-lambda(1) = deg2rad(-3.5957974); % 初始经度，转换为弧度
 % Task2
-% 我真的是日了狗了，哪里写错了啊西巴
-% 终于nmd做对了，我不是天才是什么
 % 加载GNSS位置和速度数据
 GNSS_data = csvread('Workshop3_GNSS_Pos_Vel_NED.csv');
 time_GNSS = GNSS_data(:, 1);
-latitude_GNSS = GNSS_data(:, 2);
-longitude_GNSS = GNSS_data(:, 3);
+latitude_GNSS = GNSS_data(:, 2) * deg_to_rad;
+longitude_GNSS = GNSS_data(:, 3) * deg_to_rad;
 height_GNSS = GNSS_data(:, 4);
 velocity_N_GNSS = GNSS_data(:, 5);
 velocity_E_GNSS = GNSS_data(:, 6);
@@ -70,12 +36,12 @@ velocity_E_GNSS = GNSS_data(:, 6);
 % DR数据来自任务1的结果
 % 这里假设DR_data是一个包含以下内容的矩阵：
 % time_DR, latitude_DR, longitude_DR, height_DR, velocity_N_DR, velocity_E_DR
-DR_data = [L, lambda, v_N, v_E]; % 需要用任务1的结果填充此处
+% DR_data = [L, lambda, v_N, v_E]; % 需要用任务1的结果填充此处
 
 % 初始化状态向量和协方差矩阵
 x_hat = zeros(4, 1);
 [R_N, R_E] = Radii_of_curvature(latitude_GNSS(1));
-P_hat = diag([(0.1)^2, (0.1)^2, (10)^2 / (R_N + height_GNSS(1))^2, (10)^2 / ((R_E + height_GNSS(1)) * cos(latitude_GNSS(1)/ deg_to_rad))^2]);
+P_hat = diag([(0.1)^2, (0.1)^2, (10)^2 / (R_N + height_GNSS(1))^2, (10)^2 / ((R_E + height_GNSS(1)) * cos(latitude_GNSS(1)))^2]);
 
 
 % 系统噪声PSD
@@ -94,12 +60,10 @@ H_k = [0 0 -1 0;
       -1 0 0 0;
        0 -1 0 0];
 % k = 1
-fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(1), latitude_GNSS(1), longitude_GNSS(1), velocity_N_GNSS(1), velocity_E_GNSS(1));
-latitude_GNSS(1) = latitude_GNSS(1) * deg_to_rad;
-longitude_GNSS(1) = longitude_GNSS(1) * deg_to_rad;
+fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(1), latitude_GNSS(1) / deg_to_rad, longitude_GNSS(1) / deg_to_rad, velocity_N_GNSS(1), velocity_E_GNSS(1));
+
 % 开始卡尔曼滤波循环
 for k = 2:length(time_GNSS) 
-
     % 航向角度转弧度
     psi_k = heading(k) * deg_to_rad;
     psi_k_minus_1 = heading(k-1) * deg_to_rad;
@@ -111,11 +75,11 @@ for k = 2:length(time_GNSS)
     [R_N, R_E] = Radii_of_curvature(L(k - 1)); % 子午圈曲率半径
     h = height_GNSS(k); % 地理高度   
     L(k) = L(k-1) + v_N_ave(k) * delta_t / (R_N + h);
-    lambda(k) = lambda(k-1) *  deg_to_rad + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k)));
+    lambda(k) = lambda(k-1) + v_E_ave(k) * delta_t / ((R_E + h) * cos(L(k)));
     v_N(k) = 1.7 * v_N_ave(k) - 0.7 * v_N(k-1);
     v_E(k) = 1.7 * v_E_ave(k) - 0.7 * v_E(k-1);
-    DR_data(k, :) =  [L(k) / deg_to_rad, lambda(k) / deg_to_rad, v_N(k), v_E(k)];
-    %disp(DR_data(k, :))
+    DR_data(k, :) =  [L(k) * rad_to_deg, lambda(k) * rad_to_deg, v_N(k), v_E(k)];
+    % disp(DR_data(k, :))
     %dr data是degree形式 
     % DR_data(k,1) = DR_data(k,1) - x_hat(3);
     % DR_data(k,2) = DR_data(k,2) - x_hat(4);
@@ -130,13 +94,13 @@ for k = 2:length(time_GNSS)
     Phi_k = [1 0 0 0;
              0 1 0 0;
              tau_s/(R_N + height_GNSS(k-1)) 0 1 0;
-             0 tau_s/((R_E + height_GNSS(k-1))*cos(latitude_GNSS(k-1)/ deg_to_rad)) 0 1];
+             0 tau_s/((R_E + height_GNSS(k-1))*cos(latitude_GNSS(k-1))) 0 1];
     
     % 2. 计算系统噪声协方差矩阵
     Q_k = [S_DR*tau_s, 0, (S_DR*tau_s^2)/(2*(R_N + height_GNSS(k-1))), 0;
-       0, S_DR*tau_s, 0, (S_DR*tau_s^2)/(2*(R_E + height_GNSS(k-1)) * cos(latitude_GNSS(k-1) / deg_to_rad));
+       0, S_DR*tau_s, 0, (S_DR*tau_s^2)/(2*(R_E + height_GNSS(k-1)) * cos(latitude_GNSS(k-1)));
        (S_DR*tau_s^2)/(2*(R_N + height_GNSS(k-1))), 0, (S_DR*tau_s^3)/(3*(R_N + height_GNSS(k-1))^2), 0;
-       0, (S_DR*tau_s^2)/(2*((R_E + height_GNSS(k-1)) * cos(latitude_GNSS(k-1)/ deg_to_rad))), 0, (S_DR*tau_s^3)/(3*((R_E + height_GNSS(k-1))^2 * cos(latitude_GNSS(k-1)/ deg_to_rad)^2))];
+       0, (S_DR*tau_s^2)/(2*((R_E + height_GNSS(k-1)) * cos(latitude_GNSS(k-1)))), 0, (S_DR*tau_s^3)/(3*((R_E + height_GNSS(k-1))^2 * cos(latitude_GNSS(k-1))^2))];
 
     
     % 3. 传播状态估计
@@ -147,7 +111,7 @@ for k = 2:length(time_GNSS)
     
     % 6. 计算测量噪声协方差矩阵
     R_k = [sigma_r^2/(R_N + height_GNSS(k))^2 0 0 0;
-           0 sigma_r^2/((R_E + height_GNSS(k))*cos(latitude_GNSS(k)/ deg_to_rad))^2 0 0;
+           0 sigma_r^2/((R_E + height_GNSS(k))*cos(latitude_GNSS(k)))^2 0 0;
            0 0 sigma_v^2 0;
            0 0 0 sigma_v^2];
     
@@ -155,8 +119,8 @@ for k = 2:length(time_GNSS)
     K_k = P_hat_minus * H_k' / (H_k * P_hat_minus * H_k' + R_k);
     
     % 8. 构造测量创新向量
-    delta_z_k = [latitude_GNSS(k) - DR_data(k,1);
-             longitude_GNSS(k) - DR_data(k,2);
+    delta_z_k = [latitude_GNSS(k) - DR_data(k,1) * deg_to_rad;
+             longitude_GNSS(k) - DR_data(k,2) * deg_to_rad;
              velocity_N_GNSS(k) - DR_data(k,3);
              velocity_E_GNSS(k) - DR_data(k,4)];
     %disp(delta_z_k)
@@ -168,8 +132,8 @@ for k = 2:length(time_GNSS)
     P_hat = (eye(4) - K_k*H_k)*P_hat_minus;
 
     %woc我瞎改的后来发现就应该这么改，x作为变换，前两维是速度后两维才是经纬度...
-    L_b = DR_data(k,1) - x_hat(3);
-    lambda_b = DR_data(k,2) - x_hat(4);
+    L_b = DR_data(k,1) - x_hat(3) * rad_to_deg;
+    lambda_b = DR_data(k,2) - x_hat(4) * rad_to_deg;
     v_n = DR_data(k,3) - x_hat(1);
     v_e = DR_data(k,4) - x_hat(2);
     fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(k), L_b, lambda_b, v_n, v_e);
@@ -179,4 +143,3 @@ for k = 2:length(time_GNSS)
     v_N(k) = v_n;
     v_E(k) = v_e;
 end
-
