@@ -116,6 +116,8 @@ for k = 2 : num_epoch
 end
 
 %% dr计算
+% 用来debug
+% heading_gyro_correct = heading_mag;
 % 初始化位置
 L = zeros(length(time), 1);
 lambda = zeros(length(time), 1);
