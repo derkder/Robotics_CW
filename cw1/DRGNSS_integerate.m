@@ -1,5 +1,7 @@
 clc;
 clear;
+
+%% dr 数据读取预处理与初始化
 %Dead Reckoning
 %Load Data
 run('Define_Constants.m');
@@ -12,8 +14,7 @@ delta_t = 0.5; %time interval
 v_ave_wheel = data(:, 2:5); 
 gyro = data(:, 6); %rad/s
 heading_mag = data(:, 7); %degree
-%Convert magnetic heading to radiant
-heading_mag = deg2rad(heading_mag);
+heading_mag = deg2rad(heading_mag);%rad
 
 % 加载GNSS位置和速度数据
 GNSS_data = csvread('GNSS_Pos_Vel_NED.csv');
@@ -53,6 +54,7 @@ prop2 = 0.3 * 0.2 / (0.5 * 0.4);
 v_ave_antenna = v_ave_wheel(:, 1) * prop1 + v_ave_wheel(:, 2) * prop1 + ...
     v_ave_wheel(:, 3) * prop2 + v_ave_wheel(:, 4) * prop2;
 
+%% heading_gyro计算
 %Use Gyro-Magnetometer Integration to estimate
 %heading.
 %Preprocess gyro data (Carlibration)
@@ -113,6 +115,7 @@ for k = 2 : num_epoch
     heading_gyro_correct(k) = heading_gyro(k) - xk_est_posterior(1);
 end
 
+%% dr计算
 % 初始化位置
 L = zeros(length(time), 1);
 lambda = zeros(length(time), 1);
@@ -127,8 +130,8 @@ v_E_ave = zeros(length(time), 1);
 % 循环计算每个时间点的位置
 for k = 2:length(time)
     % 航向角度转弧度
-    psi_k = heading_gyro_correct(k) * deg_to_rad;
-    psi_k_minus_1 = heading_gyro_correct(k-1) * deg_to_rad;
+    psi_k = heading_gyro_correct(k);
+    psi_k_minus_1 = heading_gyro_correct(k-1);
     
     % 计算平均速度
     v_N_ave(k) = (cos(psi_k) + cos(psi_k_minus_1)) / 2 * v_ave_antenna(k);
@@ -146,8 +149,8 @@ end
 % 初始化平均速度
 v_N = zeros(length(time), 1);
 v_E = zeros(length(time), 1);
-v_N(1) = v_ave_antenna(1) * cos(heading_gyro_correct(1) * deg_to_rad);
-v_E(1) = v_ave_antenna(1) * sin(heading_gyro_correct(1) * deg_to_rad);
+v_N(1) = v_ave_antenna(1) * cos(heading_gyro_correct(1));
+v_E(1) = v_ave_antenna(1) * sin(heading_gyro_correct(1));
 
 % 计算阻尼瞬时DR速度
 for k = 2:length(time)
@@ -159,11 +162,28 @@ end
 L = L / deg_to_rad;
 lambda = lambda  / deg_to_rad;
 
-
+figure;
+% 绘制轨迹
+plot(lambda, L, '-o'); % 经度为x轴，纬度为y轴，'-'表示线形，'o'表示数据点
+% 添加标签和标题
+xlabel('Longtitude (degrees)');
+ylabel('Latitude (degrees)');
+title('DeadReckoning');
+% 添加网格线以便更好地查看数据点
+grid on;
+% 可以选择设置坐标轴的限制范围，使得轨迹更清晰
+xlim([min(lambda) max(lambda)]);
+ylim([min(L) max(L)]);
+%% gnss dr integerate
 % Task2
 % DR数据来自任务1的结果
 % 这里假设DR_data是一个包含以下内容的矩阵：
 % time_DR, latitude_DR, longitude_DR, height_DR, velocity_N_DR, velocity_E_DR
+L_integ = zeros(length(time), 1);
+lambda_integ = zeros(length(time), 1);
+vn_i = zeros(length(time), 1);
+ve_i = zeros(length(time), 1);
+
 DR_data = [L, lambda, v_N, v_E]; % 需要用任务1的结果填充此处
 disp([L * rad_to_deg, lambda* rad_to_deg, v_N, v_E])
 % 初始化状态向量和协方差矩阵
@@ -197,6 +217,10 @@ fclose(fileID);
 fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f米%f米\n', time_GNSS(1), latitude_GNSS(1)/ deg_to_rad, longitude_GNSS(1)/ deg_to_rad, velocity_N_GNSS(1), velocity_E_GNSS(1));
 newData = {time_GNSS(1), latitude_GNSS(1)/ deg_to_rad, longitude_GNSS(1)/ deg_to_rad, velocity_N_GNSS(1), velocity_E_GNSS(1), heading_gyro_correct(1)};
 writecell(newData, filename, 'Delimiter',',', 'WriteMode', 'append');
+L_integ(1) = latitude_GNSS(1)/ deg_to_rad;
+lambda_integ(1) = longitude_GNSS(1)/ deg_to_rad;
+vn_i(1) = velocity_N_GNSS(1);
+ve_i(1) = velocity_E_GNSS(1);
 
 % 开始卡尔曼滤波循环
 for k = 2:length(time_GNSS) 
@@ -242,7 +266,6 @@ for k = 2:length(time_GNSS)
     x_hat = x_hat_minus + K_k * delta_z_k;
     P_hat = (eye(4) - K_k*H_k)*P_hat_minus;
 
-    %woc我瞎改的后来发现就应该这么改，x作为变换，前两维是速度后两维才是经纬度...
     L_b = DR_data(k,1) - x_hat(3) / deg_to_rad;
     lambda_b = DR_data(k,2) - x_hat(4) / deg_to_rad;
     v_n = DR_data(k,3) - x_hat(1);
@@ -251,5 +274,46 @@ for k = 2:length(time_GNSS)
     data = {time_GNSS(k), L_b, lambda_b, v_n, v_e, heading_gyro_correct(k)};
     writecell(data, filename, 'Delimiter',',', 'WriteMode', 'append');
 
+    L_integ(k) = L_b;
+    lambda_integ(k) = lambda_b;
+    vn_i(k) = v_n;
+    ve_i(k) = v_e;
+
+    heading_gyro_correct(k) = abs(atan2(ve_i(k), vn_i(k)));
 end
 
+figure;
+% 绘制轨迹
+plot(lambda_integ, L_integ, '-o'); % 经度为x轴，纬度为y轴，'-'表示线形，'o'表示数据点
+% 添加标签和标题
+xlabel('Longtitude (degrees)');
+ylabel('Latitude (degrees)');
+title('Integerate');
+% 添加网格线以便更好地查看数据点
+grid on;
+% 可以选择设置坐标轴的限制范围，使得轨迹更清晰
+xlim([min(lambda_integ) max(lambda_integ)]);
+ylim([min(L_integ) max(L_integ)]);
+
+% 绘制北向和东向速度随时间变化的图
+figure;
+plot(time_GNSS, vn_i, '-o');
+xlabel('Time (s)');
+ylabel('North Velocity (m/s)');
+title('Northward Velocity Over Time');
+grid on;
+
+figure;
+plot(time_GNSS, ve_i, '-o');
+xlabel('Time (s)');
+ylabel('East Velocity (m/s)');
+title('Eastward Velocity Over Time');
+grid on;
+
+% 绘制航向角随时间变化的图
+figure;
+plot(time_GNSS, heading_gyro_correct, '-o');
+xlabel('Time (s)');
+ylabel('Heading (degrees)');
+title('Heading Over Time');
+grid on;
