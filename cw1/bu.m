@@ -129,8 +129,8 @@ v_E_ave = zeros(length(time), 1);
 % 初始化平均速度
 v_N = zeros(length(time), 1);
 v_E = zeros(length(time), 1);
-v_N(1) = v_ave_antenna(1) * cos(heading_gyro_correct(1) * deg_to_rad);
-v_E(1) = v_ave_antenna(1) * sin(heading_gyro_correct(1) * deg_to_rad);
+v_N(1) = v_ave_antenna(1) * cos(heading_gyro_correct(1));
+v_E(1) = v_ave_antenna(1) * sin(heading_gyro_correct(1));
 
 % Task2
 % DR数据来自任务1的结果
@@ -165,8 +165,8 @@ fprintf('最终结果：time：%f°\n纬度 = %f°, 经度 = %f°, 速度 = %f�
 % 开始卡尔曼滤波循环
 for k = 2:length(time_GNSS) 
     % 航向角度转弧度
-    psi_k = heading_gyro_correct(k) * deg_to_rad;
-    psi_k_minus_1 = heading_gyro_correct(k-1) * deg_to_rad;
+    psi_k = heading_gyro_correct(k);
+    psi_k_minus_1 = heading_gyro_correct(k-1);
     % 计算平均速度
     v_N_ave(k) = (cos(psi_k) + cos(psi_k_minus_1)) / 2 * v_ave_antenna(k);
     v_E_ave(k) = (sin(psi_k) + sin(psi_k_minus_1)) / 2 * v_ave_antenna(k);   
