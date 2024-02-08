@@ -35,6 +35,7 @@ for idx = 1 : Sat_number
 end  
 % Position determination
 positionDiff = 100;   
+predicted_Pos_state_vector = zeros(4, 1); 
 while norm(positionDiff) > 0.1
     % Predict the ranges from the approximate user position to each satellite 
     identity_matrix = eye(3);
@@ -57,10 +58,10 @@ while norm(positionDiff) > 0.1
     end 
    
     % Formulate the predicted state vector, measurement innovation vector, measurement matrix
-    predicted_Pos_state_vector = zeros(4, 1); 
+    
     predicted_Pos_state_vector(1 : 3, 1) = user_position;
-    predicted_Vel_state_vector = zeros(4, 1); 
-    predicted_Vel_state_vector(1 : 3, 1) = user_velocity;
+    predicted_Pos_state_vector(4, 1) = clock_offset; 
+
 
     range_innovation_vector = pseudo_range(2 , 2 : columns)' - Range_matrix - clock_offset;
    
@@ -79,6 +80,8 @@ while norm(positionDiff) > 0.1
 end    
 
 % Velocity determination
+predicted_Vel_state_vector = zeros(4, 1); 
+predicted_Vel_state_vector(1 : 3, 1) = user_velocity;
 predictd_range_rates = zeros(Sat_number, 1);
 for idx = 1 : Sat_number
     predictd_range_rates(idx,:) = lineOfSight_vecto_matrix(idx,:) * (reshape(Sagnac_matrix(idx, : , :), 3, 3) * (velocityMatrix(:, idx) + Omega_ie * positionMatrix(:, idx)) - (user_velocity + Omega_ie * user_position));
@@ -89,9 +92,6 @@ Updated_user_velocity = Updated_velocity_vector(1 : 3, :);
 clock_drift = Updated_velocity_vector(4, :);
 [latitude, longtitude, height, velocity] = pv_ECEF_to_NED(Updated_user_position,Updated_user_velocity);
 disp([rad2deg(latitude), rad2deg(longtitude), height]);
-%disp(velocity)
-%disp(clock_drift)
-    
 
 x_est = [  Updated_user_position(1); Updated_user_position(2); Updated_user_position(3);
     velocity(1); velocity(2);  velocity(3);

@@ -1,9 +1,7 @@
-
 %  GNSS Kalman Filter Multiple Epochs
 format bank
 % a) Initialise the Kalman filter state vector estimate and error covariance matrix 
 [estimated_state, error_covariance] = Initialise_GNSS_KF;
-disp(estimated_state);
 % b) Compute the transition matrix
 interval = 0.5;
 I_3 = eye(3); 
@@ -14,8 +12,8 @@ transition_matrix = [I_3, interval * I_3, Zeors_3_1, Zeors_3_1;
                  Zeors_3_1', Zeors_3_1', 1, interval;
                  Zeors_3_1', Zeors_3_1', 0, 1]; 
 
-% c) Compute the system noise covariance matrix 
-PSD = 5;
+% c) Compute the system noise covariance matrix  
+PSD = 0.01;
 Clock_phase= 0.01;
 Clock_frequency = 0.04;
 noise_cov_matrix = [1/3 * PSD * interval^3 * I_3, 1/2 * PSD * interval^2 * I_3, Zeors_3_1, Zeors_3_1;
@@ -25,16 +23,17 @@ noise_cov_matrix = [1/3 * PSD * interval^3 * I_3, 1/2 * PSD * interval^2 * I_3, 
 
 pseudo_range = csvread("Pseudo_ranges.csv");
 pseudo_range_rate = csvread("Pseudo_range_rates.csv");
-
+[rows , columns] = size(pseudo_range);
 Sat_num_array = pseudo_range(1,2 : columns);
 time_array = pseudo_range(2 : rows, 1);
 time_length = length(time_array);
-I_3 = eye(3);
 latitude_list = zeros(1,time_length); 
 longtitude_list = zeros(1,time_length); 
 
+filename = 'GNSS_Pos_Vel1.csv';
+csv = fopen(filename, 'w');
+
 for time_idx = 1 :  time_length
-    [rows , columns] = size(pseudo_range);
     positionMatrix = zeros(3, Sat_number);
     velocityMatrix = zeros(3, Sat_number);
     Sat_number = length(Sat_num_array);
@@ -91,7 +90,7 @@ for time_idx = 1 :  time_length
     residual_tropo = 0.2; % Residual troposphere error standard deviation at zenith
     codeTrack_error = 2; % Code tracking and multipath error standard deviation
     range_rate_error = 0.02; % Range rate tracking and multipath error standard deviation
-    pseudo_range_err = sqrt(signal_error^2 + residual_iono^2 + residual_tropo^2 + codeTrack_error^2);
+    pseudo_range_err = signal_error^2 + residual_iono^2 + residual_tropo^2 + codeTrack_error^2;
     measurement_noise_matrix = zeros(Sat_number * 2, Sat_number * 2);
     measurement_noise_matrix(1:Sat_number, 1:Sat_number) = diag(power(10,2)*ones(1,Sat_number));
     measurement_noise_matrix(Sat_number + 1 : Sat_number * 2, Sat_number + 1 : Sat_number * 2) = diag(power(0.05,2)*ones(1,Sat_number));
@@ -123,56 +122,68 @@ for time_idx = 1 :  time_length
 
     % Outlier detection threshold
     outlier_threshold = 6; % based on chi-square distribution
-
-    % find the maximum residual vector 
-    [maxValue, outliner_idx]  = max(abs(innovation_vector(1 : Sat_number, 1))); 
-    residual_covariance = innovation_covariance(outliner_idx, outliner_idx);
-    standardized_residual = maxValue^2 / residual_covariance;
+    longtitude_list(time_idx) = rad2deg(new_longitude);
+    latitude_list(time_idx) = rad2deg(new_latitude);
     
-    % if the maximum residual vector is outlier  
-    if standardized_residual > outlier_threshold
-         % Then remove the information that provided by the 
-        disp("The outlier appears on satellite " + Sat_num_array(outliner_idx) + " at " + time_array(time_idx));
-        positionMatrix(:, outliner_idx) = []; % remove the position of the outlier satellite
-        velocityMatrix(:, outliner_idx) = []; % remove the velocity of the outlier satellite
-        Sat_number = Sat_number - 1;
-        reduced_columns = columns - 1;
-
-        lineOfSight_vecto_matrix(outliner_idx,:) = [];
-        range_rates = zeros(Sat_number, 1);
-        for idx = 1 : Sat_number
-            range_rates(idx,:) = lineOfSight_vecto_matrix(idx,:) * (reshape(Sagnac_matrix(idx, : , :), 3, 3) * (velocityMatrix(:, idx) + Omega_ie * positionMatrix(:, idx)) - (propagate_state(4:6,1) + Omega_ie * propagate_state(1:3,1)));
-        end 
-        measurement_matrix(outliner_idx, :) = [];
-        measurement_matrix(Sat_number + outliner_idx, :) = [];
-
-        measurement_noise_matrix = zeros(Sat_number * 2, Sat_number * 2);
-        measurement_noise_matrix(1:Sat_number, 1:Sat_number) = diag(power(10,2)*ones(1,Sat_number));
-        measurement_noise_matrix(Sat_number + 1 : Sat_number * 2, Sat_number + 1 : Sat_number * 2) = diag(power(0.05,2)*ones(1,Sat_number));
-        Kalman_gain_matrix = propagate_cov * measurement_matrix' / (measurement_matrix * propagate_cov * measurement_matrix' + measurement_noise_matrix);
-
-        innovation_vector(outliner_idx, :) = [];
-        innovation_vector(Sat_number + outliner_idx, :) = [];
-
-        Updated_state = propagate_state + Kalman_gain_matrix * innovation_vector;
-        Updated_error_cov = (eye(8) - Kalman_gain_matrix * measurement_matrix) * propagate_cov;
-
-        Updated_user_position = Updated_state(1 : 3, :);
-        Updated_velocity = Updated_state(4 : 6, :);
-        [new_latitude, new_longitude, new_height, new_velovcity] = pv_ECEF_to_NED(Updated_user_position,Updated_velocity);
-        fprintf('New   %.6f    %.6f    %.6f    %.6f    %.6f    %.6f\n', rad2deg(new_latitude), rad2deg(new_longitude), new_height, new_velovcity(1), new_velovcity(2), new_velovcity(3));
-        longtitude_list(time_idx) = rad2deg(new_longitude);
-        latitude_list(time_idx) = rad2deg(new_latitude);
-    else
-        disp('No outliers detected');
-        longtitude_list(time_idx) = rad2deg(new_longitude);
-        latitude_list(time_idx) = rad2deg(new_latitude);
-    end
+    reduce_innovation_vector = innovation_vector;
+    while(1)
+        %find the maximum residual vector 
+        [maxValue, outliner_idx]  = max(abs(reduce_innovation_vector(1 : Sat_number, 1))); 
+        
+        sta_idx = find(abs(innovation_vector) == maxValue, 1);
+        
+        residual_covariance = innovation_covariance(sta_idx, sta_idx);
+        standardized_residual = maxValue^2 / residual_covariance;
+    
+        %if the maximum residual vector is outlier  
+        if standardized_residual > outlier_threshold
+            % Then remove the information that provided by the 
+            disp("The outlier appears on satellite " + Sat_num_array(sta_idx) + " at " + time_array(time_idx));
+            positionMatrix(:, outliner_idx) = []; % remove the position of the outlier satellite
+            velocityMatrix(:, outliner_idx) = []; % remove the velocity of the outlier satellite
+            Sat_number = Sat_number - 1;
+            reduced_columns = columns - 1;
+    
+            lineOfSight_vecto_matrix(outliner_idx,:) = [];
+            range_rates = zeros(Sat_number, 1);
+            for idx = 1 : Sat_number
+                range_rates(idx,:) = lineOfSight_vecto_matrix(idx,:) * (reshape(Sagnac_matrix(idx, : , :), 3, 3) * (velocityMatrix(:, idx) + Omega_ie * positionMatrix(:, idx)) - (propagate_state(4:6,1) + Omega_ie * propagate_state(1:3,1)));
+            end 
+            measurement_matrix(outliner_idx, :) = [];
+            measurement_matrix(Sat_number + outliner_idx, :) = [];
+    
+            measurement_noise_matrix = zeros(Sat_number * 2, Sat_number * 2);
+            measurement_noise_matrix(1:Sat_number, 1:Sat_number) = diag(power(10,2)*ones(1,Sat_number));
+            measurement_noise_matrix(Sat_number + 1 : Sat_number * 2, Sat_number + 1 : Sat_number * 2) = diag(power(0.05,2)*ones(1,Sat_number));
+            Kalman_gain_matrix = propagate_cov * measurement_matrix' / (measurement_matrix * propagate_cov * measurement_matrix' + measurement_noise_matrix);
+    
+            reduce_innovation_vector(outliner_idx, :) = [];
+            reduce_innovation_vector(Sat_number + outliner_idx, :) = [];
+    
+            Updated_state = propagate_state + Kalman_gain_matrix * reduce_innovation_vector;
+            Updated_error_cov = (eye(8) - Kalman_gain_matrix * measurement_matrix) * propagate_cov;
+    
+            Updated_user_position = Updated_state(1 : 3, :);
+            Updated_velocity = Updated_state(4 : 6, :);
+            [new_latitude, new_longitude, new_height, new_velovcity] = pv_ECEF_to_NED(Updated_user_position,Updated_velocity);
+            %fprintf(csv, '%f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n', time_array(time_idx),rad2deg(new_latitude), rad2deg(new_longitude), new_height, new_velovcity(1), new_velovcity(2), new_velovcity(3));
+         
+            longtitude_list(time_idx) = rad2deg(new_longitude);
+            latitude_list(time_idx) = rad2deg(new_latitude);
+        else
+            disp('No outliers detected');
+            longtitude_list(time_idx) = rad2deg(new_longitude);
+            latitude_list(time_idx) = rad2deg(new_latitude);
+            fprintf(csv, '%f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n', time_array(time_idx), rad2deg(new_latitude), rad2deg(new_longitude), new_height, new_velovcity(1), new_velovcity(2), new_velovcity(3));
+            break;
+        end
+    end 
     estimated_state = Updated_state; 
-    error_covariance = Updated_error_cov;
+    error_covariance = Updated_error_cov; 
 end
-
+fclose(csv);
 scatter(longtitude_list, latitude_list, 5, 'MarkerFaceColor', 'b');   %  draw scatter diagram 
+title('Lawmower position (PSD = 0.01)'); 
 xlabel('latitude');       
 ylabel('longitude');   
 
