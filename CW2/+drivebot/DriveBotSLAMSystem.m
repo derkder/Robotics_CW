@@ -304,7 +304,7 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
                 [landmarkVertex, newVertexCreated] = this.createOrGetLandmark(event.landmarkIds(l));
                 %disp(landmarkVertex);
                 % 无论是不是新点，都是新边！
-                % 希望他这里得到的是第i个的x与y，但是我找不到哪里赋值的event
+                % z是bearing和range
                 z = event.data(:, l);
                 %disp(z);
                 % Q2b:
