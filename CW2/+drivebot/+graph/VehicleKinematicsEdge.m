@@ -67,6 +67,7 @@ classdef VehicleKinematicsEdge < g2o.core.BaseBinaryEdge
                 0 0 1];
             
             % Compute the error.
+            % the error for the process model 
             this.errorZ = Mi * ((this.edgeVertices{2}.x - priorX) / this.dT) - this.z;
             
             % Wrap the heading error to -pi to pi
@@ -85,7 +86,9 @@ classdef VehicleKinematicsEdge < g2o.core.BaseBinaryEdge
             Mi = [c s 0;
                 -s c 0;
                 0 0 1];
-            % Compute Jacobian matrix which is the partial derivative of the error function with respect to the state at time K and K+1
+            % Compute Jacobian matrixes of states at time K and K+1 which
+            % is the partial derivative of the error function with respect
+            % to the X,Y,angle
             this.J{2} = Mi / this.dT;
             this.J{1}(1, 1) = - c;
             this.J{1}(1, 2) = - s;

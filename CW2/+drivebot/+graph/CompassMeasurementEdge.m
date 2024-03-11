@@ -24,6 +24,7 @@ classdef CompassMeasurementEdge < g2o.core.BaseUnaryEdge
         end
         
         function linearizeOplus(this)
+            % Compute Jacobian matrix which is the partial derivative of the error function with respect to X,Y,angle  
             this.J{1} = [0 0 1];
         end        
     end

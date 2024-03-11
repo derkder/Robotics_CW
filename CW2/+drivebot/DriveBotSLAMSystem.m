@@ -251,16 +251,22 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
             % Implement prediction code here
             %warning('drivebotslam:handlepredicttotime:unimplemented', ...
             %    'Implement the rest of this method for Q1b.');
+            % Initialize a binaray edge to connect two states for process model with time interval   
             processModelEdge = drivebot.graph.VehicleKinematicsEdge(dT);
+            % create 2 vertices for the edge 
             processModelEdge.setVertex(1, this.vehicleVertices{this.vehicleVertexId});
             processModelEdge.setVertex(2, this.currentVehicleVertex);
             processModelEdge.setMeasurement(this.u);
             processModelEdge.setInformation(inv(this.uCov));
             processModelEdge.initialize();
+            % Put the proess model edge to a graph 
             this.graph.addEdge(processModelEdge);
+            % Put the new state vertex to a graph 
             this.currentVehicleVertex.setEstimate(processModelEdge.vertex(2).estimate());
             this.graph.addVertex(this.currentVehicleVertex);
+            % Update the process model edge set 
             this.processModelEdges{this.vehicleVertexId} = processModelEdge;
+            % Increase process model edge index by 1  
             this.numProcessModelEdges = this.numProcessModelEdges + 1;
                 
             % Bump the indices
@@ -274,6 +280,8 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
             % Create a GPS measurement edge and add it to the graph
             %warning('drivebotslam:handlegpsobservationevent:unimplemented', ...
              %   'Implement the rest of this method for Q1c.');
+            % create GPS Measurement Edge which is a unary edge then add it
+            % to the graph 
             gpsMeasurementEdge = drivebot.graph.GPSMeasurementEdge(this.configuration.gpsPositionOffset);
             gpsMeasurementEdge.setVertex(1, this.currentVehicleVertex);
             gpsMeasurementEdge.setMeasurement(event.data);
@@ -285,6 +293,7 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
             
             % Q1c
             % Create a compass measurement edge and add it to the graph
+            % compassAngularOffset needs to be fed in the CompassMeasurementEdge initialization   
             compassMeasurementEdge = drivebot.graph.CompassMeasurementEdge(this.configuration.compassAngularOffset);
             compassMeasurementEdge.setVertex(1, this.currentVehicleVertex);
             compassMeasurementEdge.setMeasurement(event.data);
