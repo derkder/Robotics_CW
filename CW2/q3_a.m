@@ -46,6 +46,9 @@ minislam.graphics.FigureManager.getFigure('Optimization times');
 clf
 plot(results{1}.optimizationTimes, '*')
 hold on
+title('Optimization times')
+xlabel('Timestep')
+ylabel('Optimisation Time (sec)')
 
 % Plot the error curves
 minislam.graphics.FigureManager.getFigure('Errors');
@@ -57,10 +60,16 @@ minislam.graphics.FigureManager.getFigure('Vehicle Covariances');
 clf
 plot(results{1}.vehicleCovarianceHistory')
 hold on
-
+legend('covariance in x', 'covariance in y', 'covariance in psi')
+xlabel('Timestep')
+title('Vehicle Covariances')
+ylabel('covariance')
 % Plot errors
 minislam.graphics.FigureManager.getFigure('Errors');
 clf
 plot(results{1}.vehicleStateHistory'-results{1}.vehicleTrueStateHistory')
 hold on
-
+legend('error in x', 'error in y', 'error in psi')
+title('Errors')
+xlabel('Timestep')
+ylabel('error')
