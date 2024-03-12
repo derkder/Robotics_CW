@@ -6,6 +6,7 @@ configuration = drivebot.SimulatorConfiguration();
 % Enable the laser to support pure SLAM
 configuration.enableLaser = true;
 
+
 % If you set this parameter to false, the simulator generates measurements
 % with no noise in them. You might find this useful for debugging.
 % However, unless specified otherwise, any submitted results must have this

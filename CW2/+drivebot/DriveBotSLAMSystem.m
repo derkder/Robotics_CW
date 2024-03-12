@@ -309,28 +309,18 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
                 % Get the landmark vertex associated with this measurement.
                 % If necessary, a new landmark vertex is created and added
                 % to the graph.
-                % 第二个属性是bool，真代表新建了，假代表以前就有
                 [landmarkVertex, newVertexCreated] = this.createOrGetLandmark(event.landmarkIds(l));
-                %disp(landmarkVertex);
-                % 无论是不是新点，都是新边！
-                % z是bearing和range
-                z = event.data(:, l);
-                %disp(z);
-                % Q2b:
-                % Complete the implementation
-                % Extract the landmark measurement (range and bearing)
                 % Extract the range and bearing from the event data
-                %disp(range);
-                %disp(bearing);
+                z = event.data(:, l);
+
+                % Q2b:   
                 % Create a range and bearing edge for the landmark observation
                 landmarkRangeBearingEdge = drivebot.graph.LandmarkRangeBearingEdge();
-                %disp(range);
                 landmarkRangeBearingEdge.setVertex(1, this.currentVehicleVertex);
                 landmarkRangeBearingEdge.setVertex(2, landmarkVertex);
                 
                 % Configure the edge with the measurement and covariance
                 landmarkRangeBearingEdge.setMeasurement(z);
-                %landmarkRangeBearingEdge.setCovariance(event.covariance);
                 landmarkRangeBearingEdge.setInformation(inv(event.covariance));
 
                 landmarkRangeBearingEdge.initialize();

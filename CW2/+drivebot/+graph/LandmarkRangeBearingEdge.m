@@ -3,8 +3,6 @@
 % The measurement is in spherical polar coordinates
 
 % Jacobian from https://github.com/petercorke/robotics-toolbox-matlab/blob/master/RangeBearingSensor.m
-
-% 这里的公式和workshop2里的公式一摸一样,处理beita_k的最后一项
 classdef LandmarkRangeBearingEdge < g2o.core.BaseBinaryEdge
     properties(Access = public)
     end
@@ -18,7 +16,7 @@ classdef LandmarkRangeBearingEdge < g2o.core.BaseBinaryEdge
         
         function initialize(this)
             % Q2b:
-            % Complete implementation
+            % Compute the coordinates of the j-th landmark
             x = this.edgeVertices{1}.x;
             deltaX = this.z(1) * cos(this.z(2) + x(3));
             deltaY = this.z(1) * sin(this.z(2) + x(3));
@@ -31,11 +29,8 @@ classdef LandmarkRangeBearingEdge < g2o.core.BaseBinaryEdge
         % [this.range, this.bearing]
         function computeError(this)
             x = this.edgeVertices{1}.x;
-            %disp(x)
-            %disp(this.edgeVertices{2}.estimate())
             dx = this.edgeVertices{2}.estimate() - this.edgeVertices{1}.x([1 2]);
-            
-            
+                 
             this.errorZ(1) = norm(dx) - this.z(1);
             this.errorZ(2) = g2o.stuff.normalize_theta(atan2(dx(2), dx(1)) - x(3) - this.z(2));
         end
