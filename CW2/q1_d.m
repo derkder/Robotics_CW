@@ -43,7 +43,7 @@ hold on
 % Plot the error curves
 minislam.graphics.FigureManager.getFigure('Errors');
 clf
-plot(results{1}.vehicleStateTime, results{1}.vehicleStateHistory'-results{1}.vehicleStateHistory')
+plot(results{1}.vehicleStateTime, results{1}.vehicleStateHistory'-results{1}.vehicleTrueStateHistory')
 xlabel('Time');
 ylabel('State error');
 legend('X','Y','Angles');
@@ -57,12 +57,12 @@ ylabel('Vehicle Covariance');
 legend('X covariances','Y covariances','Angles covariances');
 hold on
 
-% Plot errors
-minislam.graphics.FigureManager.getFigure('Errors');
+% Plot chi2 values
+minislam.graphics.FigureManager.getFigure('chi2 values');
 clf
-plot(results{1}.vehicleStateTime, results{1}.vehicleStateHistory'-results{1}.vehicleTrueStateHistory')
-xlabel('Time');
-ylabel('Vehicle Covariance');
-legend('X covariances','Y covariances','Angles covariances');
+plot(results{1}.chi2Time, results{1}.chi2History)
+xlabel('chi2Time');
+ylabel('chi2');
+legend('chi2');
 hold on
 

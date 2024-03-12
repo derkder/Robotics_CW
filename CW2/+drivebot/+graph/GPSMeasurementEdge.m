@@ -25,7 +25,7 @@ classdef GPSMeasurementEdge < g2o.core.BaseUnaryEdge
             s = sin(x(3));
             M = [c -s; s c];
             % the error in the GPS observation function which only considers X and Y  
-            this.errorZ = (x(1:2) + M * this.xyOffset(1)) - this.z(1);
+            this.errorZ = (x(1:2) + M * this.xyOffset) - this.z;
         end
         
         function linearizeOplus(this)
