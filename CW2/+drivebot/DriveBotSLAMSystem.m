@@ -331,11 +331,44 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
         end
         
         function deleteVehiclePredictionEdges(this)
-
-            % Q3a:            
-            warning('drivebotslam:deletevehiclepredictionedges:unimplemented', ...
-                'Implement the rest of this method for Q3a.');
-        end
+            %############################# Q3a ###########################
+            % Check if the flag to remove prediction edges is set to true
+            if this.removePredictionEdgesFromGraph
+            % Check if the 'keepFirstPredictionEdge' flag is false. If it is, delete all prediction edges.
+            % If the flag is true, delete all but the first prediction edge.
+                if this.keepFirstPredictionEdge
+                % Check if there are more than one prediction edges
+                    if this.numProcessModelEdges > 1
+                    % Iterate over all prediction edges starting from the second one
+                    for i = 2:this.numProcessModelEdges
+                    % Retrieve the prediction edge
+                    edge = this.processModelEdges{i};
+                    disp(class(edge));
+                    % Call the removeEdge function to remove the edge
+                    this.graph.removeEdge(edge);
+                    end
+                    % Keep only the first prediction edge in the array
+                    this.processModelEdges = {this.processModelEdges{1}};
+                    % Update the count of prediction edges to 1
+                    this.numProcessModelEdges = 1;
+                    end
+                else
+                % Iterate over all prediction edges
+                    for i = 1:this.numProcessModelEdges
+                    % Retrieve the prediction edge
+                    edge = this.processModelEdges{i};
+                    % Call the removeEdge function to remove the edge
+                    this.graph.removeEdge(edge);
+                    end
+                % Clear the prediction edges array
+                this.processModelEdges = {};
+                % Reset the count of prediction edges
+                this.numProcessModelEdges = 0;
+                end
+            end
+            % warning('drivebotslam:deletevehiclepredictionedges:unimplemented', ...
+            % 'Implement the rest of this method for Q3a.');
+            end
         
         
         % This method returns a landmark associated with landmarkId. If a
