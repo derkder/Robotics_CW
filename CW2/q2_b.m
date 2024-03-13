@@ -41,11 +41,17 @@ hold on
 minislam.graphics.FigureManager.getFigure('Errors');
 clf
 plot(results{1}.vehicleStateTime, results{1}.vehicleStateHistory'-results{1}.vehicleStateHistory')
+xlabel('Time');
+ylabel('State error');
+legend('X','Y','Angles');
 
 % Plot covariance
 minislam.graphics.FigureManager.getFigure('Vehicle Covariances');
 clf
 plot(results{1}.vehicleStateTime, results{1}.vehicleCovarianceHistory')
+xlabel('Time');
+ylabel('Vehicle Covariance');
+legend('X covariances','Y covariances','Angles covariances');
 hold on
 
 % Plot errors
@@ -59,6 +65,8 @@ hold on
 minislam.graphics.FigureManager.getFigure('chi2 values');
 clf
 plot(results{1}.chi2Time, results{1}.chi2History)
+xlabel('chi2Time');
+ylabel('chi2');
 hold on
 
 

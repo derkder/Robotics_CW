@@ -40,6 +40,9 @@ for stepIndex = 1:length(maxStepNumbers)
     clf
     plot(results{1}.optimizationTimes, '*')
     hold on
+    title('Optimization times')
+    xlabel('Timestep')
+    ylabel('Optimisation Time (sec)')
     
     % Plot the error curves.
     minislam.graphics.FigureManager.getFigure('Errors');
@@ -51,18 +54,29 @@ for stepIndex = 1:length(maxStepNumbers)
     clf
     plot(results{1}.vehicleCovarianceHistory')
     hold on
+    legend('covariance in x', 'covariance in y', 'covariance in psi')
+    xlabel('Timestep')
+    title('Vehicle Covariances')
+    ylabel('covariance')
     
     % Plot errors.
     minislam.graphics.FigureManager.getFigure('Errors');
     clf
     plot(results{1}.vehicleStateHistory'-results{1}.vehicleTrueStateHistory')
     hold on
+    legend('error in x', 'error in y', 'error in psi')
+    title('Errors')
+    xlabel('Timestep')
+    ylabel('error')
     
     % Plot chi2 values.
     minislam.graphics.FigureManager.getFigure('chi2 values');
     clf
     plot(results{1}.chi2Time, results{1}.chi2History)
     hold on
+    title('Chi 2 values')
+    xlabel('Timestep No.')
+    ylabel('Chi2 Values')
     
     % Get landmark estimates after the simulation
     [x, P, landmarkIds] = drivebotSLAMSystem.landmarkEstimates();
