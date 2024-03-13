@@ -33,7 +33,7 @@ drivebotSLAMSystem.setRecommendOptimizationPeriod(500);
 % Set whether the SLAM system should remove prediction edges. If the first
 % value is true, the SLAM system should remove the edges. If the second is
 % true, the first prediction edge will be retained.
-drivebotSLAMSystem.setRemovePredictionEdges(false, true);
+drivebotSLAMSystem.setRemovePredictionEdges(false, false);
 
 % Run the main loop and correct results
 results = minislam.mainLoop(simulator, drivebotSLAMSystem);
@@ -73,3 +73,12 @@ legend('error in x', 'error in y', 'error in psi')
 title('Errors')
 xlabel('Timestep')
 ylabel('error')
+
+%Plot chi2 value
+minislam.graphics.FigureManager.getFigure('chi2 values');
+clf
+plot(results{1}.chi2Time, results{1}.chi2History)
+hold on
+title('Chi 2 values')
+xlabel('Timestep No.')
+ylabel('Chi2 Values')

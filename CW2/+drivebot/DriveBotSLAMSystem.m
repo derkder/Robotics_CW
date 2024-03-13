@@ -331,46 +331,44 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
             end
         end
         
+
+    %Q3a
         function deleteVehiclePredictionEdges(this)
-            %############################# Q3a ###########################
             % Check if the flag to remove prediction edges is set to true
-            if this.removePredictionEdgesFromGraph
-            % Check if the 'keepFirstPredictionEdge' flag is false. If it is, delete all prediction edges.
-            % If the flag is true, delete all but the first prediction edge.
-                if this.keepFirstPredictionEdge
-                % Check if there are more than one prediction edges
-                    if this.numProcessModelEdges > 1
-                    % Iterate over all prediction edges starting from the second one
-                    for i = 2:this.numProcessModelEdges
-                    % Retrieve the prediction edge
-                    edge = this.processModelEdges{i};
-                    disp(class(edge));
-                    % Call the removeEdge function to remove the edge
-                    this.graph.removeEdge(edge);
-                    end
-                    % Keep only the first prediction edge in the array
-                    this.processModelEdges = {this.processModelEdges{1}};
-                    % Update the count of prediction edges to 1
-                    this.numProcessModelEdges = 1;
-                    end
-                else
-                % Iterate over all prediction edges
-                    for i = 1:this.numProcessModelEdges
-                    % Retrieve the prediction edge
-                    edge = this.processModelEdges{i};
-                    % Call the removeEdge function to remove the edge
-                    this.graph.removeEdge(edge);
-                    end
-                % Clear the prediction edges array
-                this.processModelEdges = {};
-                % Reset the count of prediction edges
-                this.numProcessModelEdges = 0;
-                end
+            if this.removePredictionEdgesFromGraph == true
+                % find the number of edges 
+                edges = this.graph.edges();
+                numOfEdges = length(edges);
+
+                % initialise the edge count 
+                count = 0;
+
+                % loop through all the edges and delete them all 
+            for i = 1:numOfEdges
+                
+                % check if it's a prediction edge 
+                if class(edges{i}) == "drivebot.VehicleKinematicsEdge"
+                    count = count + 1;
+
+                    % check if we need to keep the first edge 
+                    if (this.keepFirstPredictionEdge == true && count == 1)
+
+                        % if we need to keep the first edge, move onto the
+                        % next one without deleting the first                         
+                        continue                         
+                    else 
+                       % otherwise, remove the current edges 
+                        this.graph.removeEdge(edges{i});
+                        
+                        deletedEdges = deletedEdges + 1;
+                        
+                    end 
+                        
+               end  
+                
+            end 
             end
-            % warning('drivebotslam:deletevehiclepredictionedges:unimplemented', ...
-            % 'Implement the rest of this method for Q3a.');
-            end
-        
+        end
         
         % This method returns a landmark associated with landmarkId. If a
         % landmark exists already, it is returned. If it does not exist, a
