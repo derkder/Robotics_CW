@@ -268,6 +268,7 @@ classdef DriveBotSLAMSystem < minislam.slam.SLAMSystem
             this.processModelEdges{this.vehicleVertexId} = processModelEdge;
             % Increase process model edge index by 1  
             this.numProcessModelEdges = this.numProcessModelEdges + 1;
+            this.processModelEdges{this.numProcessModelEdges} = processModelEdge;
                 
             % Bump the indices
             this.vehicleVertexId = this.vehicleVertexId + 1;
